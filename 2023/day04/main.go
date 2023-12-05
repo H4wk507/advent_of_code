@@ -37,18 +37,25 @@ func parseNumber(line *string) int {
 	return number
 }
 
-// TODO: change to dp
+
+var memo = make(map[int][]int)
 func countCardsRec(arr []int, cardToMatches map[int]int) []int {
 	if len(arr) == 0 {
 		return []int{}
 	}
 	res := arr
 	for i := 0; i < len(arr); i++ {
-		var children []int
-		for j := arr[i] + 1; j <= cardToMatches[arr[i]]+arr[i]; j++ {
-			children = append(children, j)
-		}
-		res = append(res, countCardsRec(children, cardToMatches)...)
+        if val, ok := memo[arr[i]]; ok {
+            res = append(res, val...)
+        } else {
+            var children []int
+            for j := arr[i] + 1; j <= cardToMatches[arr[i]]+arr[i]; j++ {
+                children = append(children, j)
+            }
+            children = countCardsRec(children, cardToMatches)
+            res = append(res, children...)
+            memo[arr[i]] = children
+        }
 	}
 	return res
 }
