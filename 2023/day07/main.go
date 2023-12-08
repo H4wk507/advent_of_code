@@ -69,21 +69,31 @@ func getStrength(hand string) HandType {
 	}
 }
 
-func getStrengthRec(hand string) int {
-	newHand := strings.Split(hand, "")
-	bestScore := 0
+func getStrengthGreedy(hand string) int {
+	newHand := make([]byte, N_CARDS_IN_HAND)
+	counter := make(map[byte]int)
+	mostFrequentCard := byte(0)
+	mx := 0
+
 	for i := 0; i < N_CARDS_IN_HAND; i++ {
-		if hand[i] == 'J' {
-			for k := range cardToValue {
-				if k != 'J' {
-					newHand[i] = string(k)
-					score := getStrengthRec(strings.Join(newHand, ""))
-					bestScore = max(bestScore, score)
-				}
-			}
+		card := hand[i]
+		counter[card]++
+
+		if card != 'J' && counter[card] > mx {
+			mx = counter[card]
+			mostFrequentCard = card
 		}
 	}
-	return max(bestScore, int(getStrength(hand)))
+
+	for i := 0; i < N_CARDS_IN_HAND; i++ {
+		if hand[i] == 'J' {
+			newHand[i] = mostFrequentCard
+		} else {
+			newHand[i] = hand[i]
+		}
+	}
+
+	return int(getStrength(string(newHand)))
 }
 
 func compareHands(hand1, hand2 string, part int) bool {
@@ -91,7 +101,7 @@ func compareHands(hand1, hand2 string, part int) bool {
 	if part == 1 {
 		strength1, strength2 = int(getStrength(hand1)), int(getStrength(hand2))
 	} else {
-		strength1, strength2 = getStrengthRec(hand1), getStrengthRec(hand2)
+		strength1, strength2 = getStrengthGreedy(hand1), getStrengthGreedy(hand2)
 		cardToValue['J'] = 0
 	}
 
@@ -113,8 +123,8 @@ type handAndBid struct {
 
 func getHandValue(handAndBids []handAndBid) int {
 	score := 0
-	for i := 0; i < len(handAndBids); i++ {
-		score += handAndBids[i].bid * (i + 1)
+	for idx, val := range handAndBids {
+		score += val.bid * (idx + 1)
 	}
 	return score
 }
