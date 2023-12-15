@@ -1,159 +1,146 @@
 package main
 
 import (
-    "fmt"
-    "bufio"
-    "os"
+	"bufio"
+	"fmt"
+	"os"
 )
 
 func abs(a int) int {
-    if a < 0 {
-        return -a
-    }
-    return a
-    
-}
-
-func max(a, b int) int {
-    if a > b {
-        return a
-    }
-    return b
-}
-
-func print2dArr(arr [][]byte) {
-    for _, row := range arr {
-        fmt.Println(string(row))
-    }
-}
-
-func addRow(original [][]byte, newRow []byte, y int) [][]byte {
-    newArray := make([][]byte, len(original)+1)
-    newIdx := 0
-    for i := range original {
-        newArray[i] = original[i]
-        if i == y {
-            newArray[i+1] = newRow
-            newIdx = i+1
-            break
-        } 
-    }
-    for i := newIdx; i < len(original); i++ {
-        newArray[i+1] = original[i]
-    }
-    return newArray
-}
-
-func addColumn(original [][]byte, newColumn []byte, x int) [][]byte {
-	newArray := make([][]byte, len(original))
-    for i := range newArray {
-        newRow := make([]byte, len(original[i])+1)
-        for j := 0; j < x; j++ {
-            newRow[j] = original[i][j]
-        }
-        newRow[x] = newColumn[i]
-        for j := x+1; j < len(newRow); j++ {
-            newRow[j] = original[i][j-1]
-        }
-        newArray[i] = newRow
+	if a < 0 {
+		return -a
 	}
-	return newArray
+	return a
+
+}
+
+func sum2d(arr [][]int) int {
+	acc := 0
+	for _, row := range arr {
+		for _, v := range row {
+			acc += v
+		}
+	}
+	return acc
 }
 
 type Point struct {
-    y, x int
+	y, x int
 }
 
 func collectGalaxies(grid [][]byte) []Point {
-    galaxies := make([]Point, 0)
+	galaxies := make([]Point, 0)
 
-    for y, row := range grid {
-        for x, v := range row {
-            if v == '#' {
-                galaxies = append(galaxies, Point{y: y, x: x})
-            }
-        }
-    }
+	for y, row := range grid {
+		for x, v := range row {
+			if v == '#' {
+				galaxies = append(galaxies, Point{y: y, x: x})
+			}
+		}
+	}
 
-    return galaxies
-}
-
-func expandGrid(grid [][]byte) [][]byte {
-    expandedGrid := grid
-
-    /* row check */
-    for y, row := range grid {
-        expand := true
-        for _, v := range row {
-            if v != '.' {
-                expand = false
-                break
-            }
-        }
-        if expand {
-            expandedGrid = addRow(expandedGrid, row, y)
-        }
-    }
-
-    /* column check */
-    cnt := 0 
-    expandedGrid2 := expandedGrid
-    for x := 0; x < len(expandedGrid[0]); x++ {
-        col := make([]byte, 0)
-        expand := true
-        for y := 0; y < len(expandedGrid); y++ {
-            col = append(col, expandedGrid[y][x])
-            if expandedGrid[y][x] != '.' {
-                expand = false
-            }
-        }
-        if expand {
-            expandedGrid2 = addColumn(expandedGrid2, col, x+cnt)
-            cnt++;
-        }
-    }
-
-    return expandedGrid2
+	return galaxies
 }
 
 func calculateDistances(grid [][]byte, galaxies []Point) [][]int {
-    dist := make([][]int, len(galaxies))
+	dist := make([][]int, len(galaxies))
 
-    for y := range galaxies {
-        dist[y] = make([]int, len(galaxies))
-    }
+	for y := range galaxies {
+		dist[y] = make([]int, len(galaxies))
+	}
 
-    for i, g1 := range galaxies {
-        for j, g2 := range galaxies {
-            dist[i][j] = abs(g1.x - g2.x) + abs(g1.y - g2.y)
-        }
-    }
-    return dist
+	for i, g1 := range galaxies {
+		for j, g2 := range galaxies {
+			dist[i][j] = abs(g1.x-g2.x) + abs(g1.y-g2.y)
+		}
+	}
+	return dist
+}
+
+func adjustGalaxiesCords(grid [][]byte, galaxies []Point, part int) []Point {
+	emptyRows := make([]int, 0)
+	emptyCols := make([]int, 0)
+
+	for y, row := range grid {
+		isEmpty := true
+		for _, v := range row {
+			if v == '#' {
+				isEmpty = false
+				break
+			}
+		}
+		if isEmpty {
+			emptyRows = append(emptyRows, y)
+		}
+	}
+
+	for x := 0; x < len(grid[0]); x++ {
+		isEmpty := true
+		for y := 0; y < len(grid); y++ {
+			if grid[y][x] == '#' {
+				isEmpty = false
+				break
+			}
+		}
+		if isEmpty {
+			emptyCols = append(emptyCols, x)
+		}
+	}
+
+	var expansionRate int
+	if part == 1 {
+		expansionRate = 1
+	} else {
+		expansionRate = 1_000_000 - 1
+	}
+	newGalaxies := make([]Point, len(galaxies))
+	copy(newGalaxies, galaxies)
+	for _, emptyRow := range emptyRows {
+		for i, galaxy := range galaxies {
+			if galaxy.y > emptyRow {
+				newGalaxies[i].y = newGalaxies[i].y + expansionRate
+			}
+		}
+	}
+
+	for _, emptyCol := range emptyCols {
+		for i, galaxy := range galaxies {
+			if galaxy.x > emptyCol {
+				newGalaxies[i].x = newGalaxies[i].x + expansionRate
+			}
+		}
+	}
+
+	return newGalaxies
+}
+
+func part1(grid [][]byte, galaxies []Point) int {
+	galaxies = adjustGalaxiesCords(grid, galaxies, 1)
+	dist := calculateDistances(grid, galaxies)
+	return sum2d(dist) / 2
+}
+
+func part2(grid [][]byte, galaxies []Point) int {
+	galaxies = adjustGalaxiesCords(grid, galaxies, 2)
+	dist := calculateDistances(grid, galaxies)
+	return sum2d(dist) / 2
 }
 
 func main() {
-    file, err := os.Open("input");
-    if err != nil {
-        return
-    }
+	file, err := os.Open("input")
+	if err != nil {
+		return
+	}
 
-    grid := make([][]byte, 0)
+	grid := make([][]byte, 0)
 
-    scanner := bufio.NewScanner(file)
-    for scanner.Scan() {
-        grid = append(grid, []byte(scanner.Text()))
-    }
-    
-    expandedGrid := expandGrid(grid)
-    galaxies := collectGalaxies(expandedGrid)
-    dist := calculateDistances(expandedGrid, galaxies)
-    acc := 0
-    for _, row := range dist {
-        for _, v := range row {
-            acc += v
-        }
-    }
-    print2dArr(expandedGrid)
-    //fmt.Println(acc / 2)
-    
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		grid = append(grid, []byte(scanner.Text()))
+	}
+
+	galaxies := collectGalaxies(grid)
+	fmt.Println("Part #1:", part1(grid, galaxies))
+	fmt.Println("Part #2:", part2(grid, galaxies))
+
 }
