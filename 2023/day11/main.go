@@ -129,8 +129,10 @@ func part2(grid [][]byte, galaxies []Point) int {
 func main() {
 	file, err := os.Open("input")
 	if err != nil {
+        fmt.Printf("error opening file: %v\n", err)
 		return
 	}
+    defer file.Close()
 
 	grid := make([][]byte, 0)
 
@@ -142,5 +144,4 @@ func main() {
 	galaxies := collectGalaxies(grid)
 	fmt.Println("Part #1:", part1(grid, galaxies))
 	fmt.Println("Part #2:", part2(grid, galaxies))
-
 }
