@@ -6,124 +6,67 @@ import (
 	"os"
 )
 
-func colsEquals(grid [][]byte, c1, c2 int) bool {
-	n := len(grid)
-	for r := 0; r < n; r++ {
-		if grid[r][c1] != grid[r][c2] {
-			return false
+type Grid [][]byte
+
+func getColsDistance(grid Grid, c1, c2 int) int {
+	dist := 0
+	for _, row := range grid {
+		if row[c1] != row[c2] {
+			dist++
 		}
 	}
-	return true
+	return dist
 }
 
-func rowsEquals(grid [][]byte, r1, r2 int) bool {
+func getRowsDistance(grid Grid, r1, r2 int) int {
 	m := len(grid[0])
+	dist := 0
 	for c := 0; c < m; c++ {
 		if grid[r1][c] != grid[r2][c] {
-			return false
+			dist++
 		}
 	}
-	return true
+	return dist
 }
 
-func findReflectionCol(grid [][]byte, prevRefCol int) int {
+func findReflectionCol(grid Grid, part int) int {
 	m := len(grid[0])
 	for col := 0; col < m-1; col++ {
-		found := true
-		for l, r := col, col+1; l >= 0 && r < m; l, r = l-1, r+1 {
-			if !colsEquals(grid, l, r) {
-				found = false
-				break
-			}
+		distSum := 0
+		for l, r := col, col+1; l >= 0 && r < m && distSum <= part-1; l, r = l-1, r+1 {
+			distSum += getColsDistance(grid, l, r)
 		}
-		if found {
-			if col+1 != prevRefCol {
-				return col + 1
-			}
+		if distSum == part-1 {
+			return col + 1
 		}
 	}
 	return -1
 }
 
-func findReflectionRows(grid [][]byte, prevRefRow int) int {
+func findReflectionRow(grid Grid, part int) int {
 	n := len(grid)
 	for row := 0; row < n-1; row++ {
-		found := true
-		for u, l := row, row+1; u >= 0 && l < n; u, l = u-1, l+1 {
-			if !rowsEquals(grid, u, l) {
-				found = false
-				break
-			}
+		distSum := 0
+		for u, l := row, row+1; u >= 0 && l < n && distSum <= part-1; u, l = u-1, l+1 {
+			distSum += getRowsDistance(grid, u, l)
 		}
-		if found {
-			if row+1 != prevRefRow {
-				return row + 1
-			}
+		if distSum == part-1 {
+			return row + 1
 		}
 	}
 	return -1
 }
 
-type GridAndReflection struct {
-	grid           [][]byte
-	refCol, refRow int
-}
-
-func swapSymbol(grid [][]byte, row, col int) {
-	if grid[row][col] == '#' {
-		grid[row][col] = '.'
-	} else {
-		grid[row][col] = '#'
-	}
-}
-
-func getNewReflectionScore(gridAndReflection GridAndReflection) int {
-	grid := gridAndReflection.grid
-	n := len(grid)
-	for i := 0; i < n; i++ {
-		m := len(grid[i])
-		for j := 0; j < m; j++ {
-			swapSymbol(grid, i, j)
-			col := findReflectionCol(grid, gridAndReflection.refCol)
-			if col != -1 {
-				return col
-			}
-			row := findReflectionRows(grid, gridAndReflection.refRow)
-			if row != -1 {
-				return row * 100
-			}
-			swapSymbol(grid, i, j)
-		}
-	}
-	return 0
-}
-
-func part2(gridAndReflections []GridAndReflection) int {
+func solve(grids []Grid, part int) int {
 	cnt := 0
-	for _, gridAndReflection := range gridAndReflections {
-		cnt += getNewReflectionScore(gridAndReflection)
-	}
-	return cnt
-}
-
-func part1(gridAndReflections []GridAndReflection) int {
-	cnt := 0
-	for i, gridAndReflection := range gridAndReflections {
-		grid := gridAndReflection.grid
-		col := findReflectionCol(grid, -1)
-		if col != -1 {
+	for _, grid := range grids {
+		if col := findReflectionCol(grid, part); col != -1 {
 			cnt += col
-			gridAndReflections[i].refCol = col
-			continue
-		}
-		row := findReflectionRows(grid, -1)
-		if row != -1 {
+		} else if row := findReflectionRow(grid, part); row != -1 {
 			cnt += row * 100
-			gridAndReflections[i].refRow = row
 		}
 	}
 	return cnt
-
 }
 
 func main() {
@@ -134,21 +77,21 @@ func main() {
 	}
 	defer file.Close()
 
-	gridAndReflections := make([]GridAndReflection, 0)
-	grid := make([][]byte, 0)
+	grids := make([]Grid, 0)
+	grid := make(Grid, 0)
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := scanner.Text()
 		if line == "" {
-			gridAndReflections = append(gridAndReflections, GridAndReflection{grid, -1, -1})
-			grid = make([][]byte, 0)
+			grids = append(grids, grid)
+			grid = make(Grid, 0)
 		} else {
 			grid = append(grid, []byte(line))
 		}
 	}
-	gridAndReflections = append(gridAndReflections, GridAndReflection{grid, -1, -1})
+	grids = append(grids, grid)
 
-	fmt.Println("Part #1:", part1(gridAndReflections))
-	fmt.Println("Part #2:", part2(gridAndReflections))
+	fmt.Println("Part #1:", solve(grids, 1))
+	fmt.Println("Part #2:", solve(grids, 2))
 }
