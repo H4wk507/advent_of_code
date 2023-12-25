@@ -113,6 +113,61 @@ func moveBeam(beam *Beam) {
 	}
 }
 
+func getStartingBeams(grid Grid, part int) []Beam {
+	n, m := len(grid), len(grid[0])
+	startingBeams := make([]Beam, 0)
+	if part == 1 {
+		startingBeams = append(startingBeams, Beam{y: 0, x: 0, direction: East})
+	} else {
+		for x := 0; x < m; x++ {
+			startingBeams = append(startingBeams, Beam{y: 0, x: x, direction: South})
+			startingBeams = append(startingBeams, Beam{y: n - 1, x: x, direction: North})
+		}
+		for y := 0; y < n; y++ {
+			startingBeams = append(startingBeams, Beam{y: y, x: 0, direction: East})
+			startingBeams = append(startingBeams, Beam{y: y, x: m - 1, direction: West})
+		}
+	}
+	return startingBeams
+}
+
+func clearVisited(grid *Grid) {
+	for i := range *grid {
+		for j := range (*grid)[i] {
+			(*grid)[i][j].visitedBy = 0
+		}
+	}
+}
+
+func solve(grid Grid, part int) int {
+	maxEnergizedTiles := 0
+	startingBeams := getStartingBeams(grid, part)
+	for _, startingBeam := range startingBeams {
+		beams := []Beam{startingBeam}
+		for len(beams) > 0 {
+			beam := beams[0]
+			beams = beams[1:]
+
+			for {
+				y, x := beam.y, beam.x
+				if y < 0 || y >= len(grid) || x < 0 || x >= len(grid[0]) {
+					break
+				}
+				if !handleTile(&grid, y, x, &beams, &beam) {
+					break
+				}
+				moveBeam(&beam)
+			}
+		}
+		energizedTiles := getEnergizedTiles(grid)
+		if energizedTiles > maxEnergizedTiles {
+			maxEnergizedTiles = energizedTiles
+		}
+		clearVisited(&grid)
+	}
+	return maxEnergizedTiles
+}
+
 func main() {
 	file, err := os.Open("./input")
 	if err != nil {
@@ -132,22 +187,6 @@ func main() {
 		}
 		grid = append(grid, row)
 	}
-
-	beams := []Beam{{y: 0, x: 0, direction: East}}
-	for len(beams) > 0 {
-		beam := beams[0]
-		beams = beams[1:]
-
-		for {
-			y, x := beam.y, beam.x
-			if y < 0 || y >= len(grid) || x < 0 || x >= len(grid[0]) {
-				break
-			}
-			if !handleTile(&grid, y, x, &beams, &beam) {
-				break
-			}
-			moveBeam(&beam)
-		}
-	}
-	fmt.Println("Part #1:", getEnergizedTiles(grid))
+	fmt.Println("Part #1:", solve(grid, 1))
+	fmt.Println("Part #2:", solve(grid, 2))
 }
