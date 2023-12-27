@@ -4,29 +4,22 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"regexp"
+	"strconv"
 )
 
 type Point struct {
 	y, x int
 }
 
-type Direction byte
+type Direction string
 
 const (
-	Up    Direction = 'U'
-	Right Direction = 'R'
-	Down  Direction = 'D'
-	Left  Direction = 'L'
+	Up    Direction = "U"
+	Right Direction = "R"
+	Down  Direction = "D"
+	Left  Direction = "L"
 )
-
-func parseNumber(str string) int {
-	ret := 0
-	for i := 0; str[i] >= '0' && str[i] <= '9'; i++ {
-		ret = ret*10 + int(str[i]-'0')
-
-	}
-	return ret
-}
 
 func getDeltasFromDirection(dir Direction) (int, int) {
 	switch dir {
@@ -44,6 +37,41 @@ func getDeltasFromDirection(dir Direction) (int, int) {
 	}
 }
 
+var numberToDirection = map[byte]Direction{'0': "R", '1': "D", '2': "L", '3': "U"}
+
+func parseHex(hex string) (Direction, int) {
+	numberStr := hex[:5]
+	number, _ := strconv.ParseInt(numberStr, 16, 0)
+	direction := numberToDirection[hex[5]]
+	return direction, int(number)
+}
+
+type State struct {
+	dir  Direction
+	dist int
+	hex  string
+}
+
+func solve(states []State, part int) int {
+	curr, area := Point{0, 0}, 0
+
+	getDirectionAndDist := func(state State) (Direction, int) {
+		if part == 1 {
+			return state.dir, state.dist
+		}
+		return parseHex(state.hex)
+	}
+
+	for _, state := range states {
+		dir, dist := getDirectionAndDist(state)
+		dy, dx := getDeltasFromDirection(dir)
+		next := Point{curr.y + dy*dist, curr.x + dx*dist}
+		area += ((curr.x*next.y - next.x*curr.y) + dist)
+		curr = next
+	}
+	return area/2 + 1
+}
+
 func main() {
 	file, err := os.Open("./input")
 	if err != nil {
@@ -52,16 +80,19 @@ func main() {
 	}
 	defer file.Close()
 
+	re := regexp.MustCompile(`([URDL]) (\d+) \(#([0-9a-f]+)\)`)
+	states := make([]State, 0)
 	scanner := bufio.NewScanner(file)
-	curr, area := Point{0, 0}, 0
+
 	for scanner.Scan() {
 		line := scanner.Text()
-		dir, dist := Direction(line[0]), parseNumber(line[2:])
-		dy, dx := getDeltasFromDirection(dir)
-		// Shoelace formula
-		next := Point{curr.y + dy*dist, curr.x + dx*dist}
-		area += ((curr.x*next.y - next.x*curr.y) + dist)
-		curr = next
+		match := re.FindStringSubmatch(line)
+		dir, distStr, hex := Direction(match[1]), match[2], match[3]
+		dist, _ := strconv.Atoi(distStr)
+		states = append(states, State{dir, dist, hex})
 	}
-	fmt.Println(area/2 + 1)
+	fmt.Println("Part #1:", solve(states, 1))
+	fmt.Println("Part #2:", solve(states, 2))
 }
+
+// https://en.wikipedia.org/wiki/Shoelace_formula
