@@ -108,6 +108,71 @@ func part1(workflows Workflows, parts []Part) int {
 	return total
 }
 
+type Interval = map[string]*[2]int
+
+func copyInterval(interval Interval) Interval {
+	newInterval := make(Interval)
+	for k, v := range interval {
+		newInterval[k] = &[2]int{v[0], v[1]}
+	}
+	return newInterval
+}
+
+func getCombs(intervalCombs []Interval) []int {
+	combs := make([]int, len(intervalCombs))
+	for i, intervalComb := range intervalCombs {
+		combs[i] = 1
+		for _, interval := range intervalComb {
+			min, max := interval[0], interval[1]
+			combs[i] *= (max - min + 1)
+		}
+	}
+	return combs
+}
+
+func getIntervalCombs(workflowName string, workflows Workflows, interval Interval) []Interval {
+	switch workflowName {
+	case "R":
+		return []Interval{}
+	case "A":
+		return []Interval{interval}
+	default:
+		intervalCombs := make([]Interval, 0)
+		for _, workflow := range workflows[workflowName] {
+			newInterval := copyInterval(interval)
+			switch workflow.op {
+			case "<":
+				newInterval[workflow.lhs][1] = workflow.rhs - 1
+				intervalCombs = append(intervalCombs, getIntervalCombs(workflow.destination, workflows, newInterval)...)
+				interval[workflow.lhs][0] = workflow.rhs
+			case ">":
+				newInterval[workflow.lhs][0] = workflow.rhs + 1
+				intervalCombs = append(intervalCombs, getIntervalCombs(workflow.destination, workflows, newInterval)...)
+				interval[workflow.lhs][1] = workflow.rhs
+			case "":
+				intervalCombs = append(intervalCombs, getIntervalCombs(workflow.destination, workflows, newInterval)...)
+			}
+		}
+		return intervalCombs
+	}
+}
+
+func part2(workflows Workflows) int {
+	interval := Interval{
+		"x": {1, 4000},
+		"m": {1, 4000},
+		"a": {1, 4000},
+		"s": {1, 4000},
+	}
+	intervalCombs := getIntervalCombs("in", workflows, interval)
+	combs := getCombs(intervalCombs)
+	combSum := 0
+	for _, comb := range combs {
+		combSum += comb
+	}
+	return combSum
+}
+
 func main() {
 	file, err := os.Open("./input")
 	if err != nil {
@@ -126,4 +191,5 @@ func main() {
 	workflows := getWorkflows(&lines)
 	parts := getParts(lines)
 	fmt.Println("Part #1:", part1(workflows, parts))
+	fmt.Println("Part #2:", part2(workflows))
 }
