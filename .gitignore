@@ -1,3 +1,6 @@
 a.out
 main
 notes
+.zig-cache/
+*.o
+zig-out/
